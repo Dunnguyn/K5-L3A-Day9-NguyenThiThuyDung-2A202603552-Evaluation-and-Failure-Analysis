@@ -29,6 +29,30 @@ REQUIRED = ("item_id", "claim_id", "failure_modes", "provenance", "split", "eval
 
 FM_CODE = re.compile(r"FM-\d{2}")
 
+# Observed failures: references use shape/claim/seed and 1-based event numbers.
+OBSERVED = {
+    "C-002": (["FM-03"], "seeded_regression/C-002/11#3"),
+    "C-007": (["FM-02"], "seeded_regression/C-007/11#5"),
+    "C-008": (["FM-08"], "seeded_regression/C-008/11#5"),
+    "C-013": (["FM-05"], "seeded_regression/C-013/11#5"),
+    "C-014": (["FM-04", "FM-05", "FM-08"], "slice_regression/C-014/11#4;seeded_regression/C-014/11#5-6"),
+}
+
+# Additional test coverage, not a claim that baseline failed. Each of these
+# claims contains a forbidden secret; C-006 also explicitly asks for an old
+# clause. See the taxonomy for the assertions and controlled fault replays.
+COVERAGE = {
+    "C-001": ["FM-01"],
+    "C-003": ["FM-01"],
+    "C-004": ["FM-01"],
+    "C-005": ["FM-01"],
+    "C-006": ["FM-06"],
+    "C-009": ["FM-01"],
+    "C-010": ["FM-01"],
+    "C-011": ["FM-01"],
+    "C-012": ["FM-01"],
+}
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -43,14 +67,14 @@ def build(source: Path = SOURCE) -> tuple[int, int]:
     items, labels = [], {}
     for n, claim in enumerate(claims, start=1):
         item_id = f"E-{n:03d}"
+        modes, trace_ref = OBSERVED.get(claim["claim_id"], (COVERAGE.get(claim["claim_id"], []), None))
         items.append({
             "item_id": item_id,
             "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            "failure_modes": list(modes),
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
-                           "from_trace": None, "generator": None,
-                           "label_by": "lab8_matrix", "checked_by": None},
+                           "from_trace": trace_ref, "generator": "lab9.evalset.build",
+                           "label_by": "lab8_matrix", "checked_by": "trace_case_replay" if trace_ref else None},
             "split": "regression",
             "eval_set_version": VERSION,
         })
