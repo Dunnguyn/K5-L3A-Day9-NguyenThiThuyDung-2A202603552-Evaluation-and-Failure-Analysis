@@ -1,30 +1,20 @@
-# Trace case: từ trace tới quyết định sai đầu tiên
+# Trace case: C-002 — ticket ghi đè DB
 
-Một trace case trả lời một câu: **bước nào là bước sai đầu tiên**, và test nào sẽ bắt được nó lần sau.
+| Trường | Bằng chứng |
+|---|---|
+| Trial | `seeded_regression / C-002 / seed 11`; trace run ID `R-seeded_regression-C-002-s11`, eval report `E-seeded_regression-20261117-9aa9`. |
+| Ledger trước reply | Ledger hoàn 20.000đ, count 1, committed audit 1, unexpected rows 0; nhãn yêu cầu 0đ, count 0, audit 0, status `denied`, proposal 0, `approval_ok=true`. Result thực tế `resolved`; Lab 8 grader FAIL. |
+| First wrong step | Event **3 `model_override`**: `delay_days=5`. |
+| Vì sao đầu tiên | Event 1 handoff và event 2 investigator đọc đơn O-202 có DB `delay_days=2`; event 3 thay bằng 5 ngày từ ticket, trái dữ kiện DB. Event 4 mới quote 20.000đ và event 6 mới nói đã hoàn 20.000đ: đó là hệ quả sau bước sai. |
+| Failure mode | FM-03 `ticket_trust`; xem [taxonomy](failure_taxonomy.md). |
+| Fixed đối chứng | `R-fixed-C-002-s11`: event 3 quote 0 `no_entitlement`, không có override; ledger 0đ/count 0/audit 0, status `denied`, unexpected rows 0; Lab 8 PASS. |
+| Regression test | `tests/test_lab9_trace_regression.py::test_ticket_override_detected_against_fixed`: replay API thật, kiểm tra DB 2 so với override 5; `DbFactKept`, `RefundAmountCorrect` và Lab 8 fail trên regression, pass trên fixed. Đã chạy PASS. |
+| Giới hạn | Event không ghi toàn bộ quyết định nội bộ; kết luận first wrong step áp dụng cho sự kiện có thể quan sát trong trace này. |
+
+Từ `src`, tái chạy:
 
 ```bash
-cd src
 python -m lab9.trace_case --shape seeded_regression --claim C-002 --seed 11
-python -m lab9.trace_case --shape fixed --claim C-002 --seed 11   # đối chứng
+python -m lab9.trace_case --shape fixed --claim C-002 --seed 11
+python -m pytest -q -m student -o addopts= tests/test_lab9_trace_regression.py
 ```
-
-Lệnh in ra ba phần: các event trong trace (`reply`, `decision`, `model_override`, `error` …), ledger so với nhãn, và lý do của grader Lab 8.
-
-## Mẫu điền (mỗi nhóm 1 case, lấy từ trial đang fail trong report)
-
-| Trường | Nội dung |
-|---|---|
-| Trial | `<shape> <claim>@<seed>`, run ID trong report |
-| Triệu chứng | Grader nào fail; reply nói gì so với ledger ghi gì |
-| Bước sai đầu tiên | Số thứ tự event + kind + trích payload (≤1 dòng) |
-| Vì sao là bước *đầu tiên* | Các bước trước đó đúng ra sao (dẫn số event) |
-| Failure mode | Mã FM-xx trong `docs/failure_taxonomy.md` |
-| Đối chứng | Cùng claim@seed trên shape `fixed`: bước đó khác thế nào |
-| Regression test | Tên test + grader/assert nào bắt được; đã thấy fail trên variant lỗi và pass trên `fixed` chưa |
-| Chưa chắc chắn | Điều trace không chứng minh được |
-
-## Quy tắc
-
-- Đọc **ledger trước reply**: reply trôi chảy vẫn có thể đi kèm một khoản hoàn sai.
-- "Bước sai đầu tiên" phải dẫn số event cụ thể, không phải "agent bị nhầm".
-- Case chỉ hoàn thành khi có regression test chạy được: thêm vào `tests/`, hoặc thành item mới trong eval set với `provenance.from_trace`.
