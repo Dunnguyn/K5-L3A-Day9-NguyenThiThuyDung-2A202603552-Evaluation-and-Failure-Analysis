@@ -1,6 +1,6 @@
 # PRD v1.1 — LogiX-VN refund agent
 
-v1.1 bổ sung tiêu chí đo lường, gate và trách nhiệm cho nghiệp vụ Lab 8, không thêm tính năng. Baseline dưới đây là report `E-swarm-20261117-9aa9`, code `87010c7`, eval set v1 SHA `9aa9c82e7a97`, metric spec 1.0.
+v1.1 bổ sung tiêu chí đo lường, gate và trách nhiệm cho nghiệp vụ Lab 8, không thêm tính năng. Baseline dưới đây là report `E-swarm-20261118-cfc2`, code/grader dựa trên `87010c7`, baseline được tái tạo sau khi chuẩn hóa newline, eval set v1 SHA `cfc20f0c4d1a`, metric spec 1.0.
 
 ## 1. Phạm vi pilot
 

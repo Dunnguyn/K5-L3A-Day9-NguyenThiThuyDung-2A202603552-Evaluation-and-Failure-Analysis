@@ -4,8 +4,8 @@
 
 Đánh giá offline agent xử lý claim hoàn tiền LogiX-VN, bao gồm quyết định, phê duyệt, ledger, bảo mật và sự nhất quán của reply; gate dùng để phát hiện hồi quy trước merge, không chứng minh an toàn production.
 
-- Code/grader và baseline được chạy tại commit `87010c7`; eval set `v1`, SHA `9aa9c82e7a97`; metric spec `1.0`, `src/config/metric_spec.yaml`.
-- Baseline `E-swarm-20261117-9aa9`; đối chứng `E-fixed-20261117-9aa9`; regression `E-seeded_regression-20261117-9aa9`.
+- Code/grader dựa trên commit `87010c7`; baseline được tái tạo sau khi chuẩn hóa newline; eval set `v1`, SHA `cfc20f0c4d1a`; metric spec `1.0`, `src/config/metric_spec.yaml`.
+- Baseline `E-swarm-20261118-cfc2`; đối chứng `E-fixed-20261118-cfc2`; regression `E-seeded_regression-20261118-cfc2`.
 - Dataset: 14 item công khai `lab8_public` × 5 seed `[11,22,33,44,55]`; nhãn trong `src/data/eval/labels_v1.json`, tách khỏi item `eval_set_v1.jsonl`. Mỗi report có 70 rows và 0 evaluator failures.
 
 ## Metric và ngưỡng
@@ -56,7 +56,7 @@ Thay item, nội dung claim, label, split hoặc tập dữ liệu làm thay đ�
 
 `pass@k` là xác suất ít nhất một thành công trong k lượt lấy không hoàn lại; `pass^k` (`pass_hat_k`) là xác suất cả k lượt thành công. Harness tính từng item từ số lượt thành công trên 5 seed, rồi lấy trung bình qua 28 item; không coi 140 trial là 140 item độc lập.
 
-A/A dùng cùng `swarm`, cùng eval set SHA `06f20ae661c4`, bộ A `[11,22,33,44,55]` và B `[66,77,88,99,110]`. `lab9.mutation --aa` báo Δ = B − A bằng 0,0000 cho mọi metric; đây là độ phân giải các metric được aggregate/báo cáo, không phải ước lượng phân phối nhiễu đầy đủ. Cả hai bộ có `pass_rate=0,9786`, `pass_hat_5=0,8929` và `cost_per_success=50,8077`.
+A/A dùng cùng `swarm`, cùng eval set SHA `b040c137805a`, bộ A `[11,22,33,44,55]` và B `[66,77,88,99,110]`. `lab9.mutation --aa` báo Δ = B − A bằng 0,0000 cho mọi metric; đây là độ phân giải các metric được aggregate/báo cáo, không phải ước lượng phân phối nhiễu đầy đủ. Cả hai bộ có `pass_rate=0,9786`, `pass_hat_5=0,8929` và `cost_per_success=50,8077`.
 
 Sàn blocking `pass_hat_5 >= 0,80` theo rubric, thấp hơn baseline A/A 0,8929; A/A quan sát delta 0 nên sàn không nằm ở giá trị baseline quan sát. `flaky_regression` có `pass_rate=0,9143` nhưng `pass_hat_5=0,5714`, bị gate chặn bởi `pass_hat_5` (và trong lần chạy này cả pass_rate và slice money_movement). Trung bình pass_rate có thể vẫn cao khi một lỗi hiếm phá vỡ tính ổn định qua cả 5 lượt.
 
@@ -68,6 +68,6 @@ Gate kiểm tra PR và baseline trước quality thresholds: metric số hữu h
 
 Khi được truyền `--base-spec` và cùng eval-set version, ratchet chặn xóa metric/slice, tắt blocking, nới min/max/max_increase, bỏ `no_significant_drop` hoặc thay metric của slice. Việc so sánh theo ID/tên không phụ thuộc thứ tự. **Không truyền `--base-spec` thì ratchet không được áp dụng**; workflow v2 lấy base spec theo SHA của base PR (hoặc nhánh mặc định khi chạy thủ công) và truyền vào gate/scorecard. Khi base branch chưa có các yêu cầu Advanced, test rubric bổ sung kiểm tra floor reliability, FM-08 và hai slice blocking.
 
-Trên `E-slice_regression-20261117-06f2` với baseline `E-swarm-20261117-06f2`, spec 2.1: `lab9.traps` exit 0, cả bốn trap đều bị gate exit 1: `evaluator_errors_as_nan` (row metric thiếu), `dropped_failing_rows` (số row không đủ), `cherry_picked_seeds` (seed/metric không hợp lệ hoặc khác baseline) và `loosened_spec` (ratchet với `--base-spec`). Mutation scorecard chặn 3/3 regression, 0 false alarms; fixed và honest refactor merge. Đây là kết quả public, không phải kết quả hidden grader hay GitHub Actions.
+Trên `E-slice_regression-20261118-b040` với baseline `E-swarm-20261118-b040`, spec 2.1: `lab9.traps` exit 0, cả bốn trap đều bị gate exit 1: `evaluator_errors_as_nan` (row metric thiếu), `dropped_failing_rows` (số row không đủ), `cherry_picked_seeds` (seed/metric không hợp lệ hoặc khác baseline) và `loosened_spec` (ratchet với `--base-spec`). Mutation scorecard chặn 3/3 regression, 0 false alarms; fixed và honest refactor merge. Đây là kết quả public, không phải kết quả hidden grader hay GitHub Actions.
 
 Integrity không xác thực mật mã nguồn gốc report hay bảo vệ nếu kẻ sửa thay cả rows lẫn aggregate một cách nhất quán, hoặc sửa baseline/spec được tin cậy. Cần lưu baseline và base-spec từ nhánh được bảo vệ, hạn chế quyền sửa, tái chạy eval trong CI và xác thực provenance/artifact; cần thêm kiểm thử hidden cho dữ liệu giả nhất quán, thang điểm ngoài miền và thay đổi hành vi grader. Không suy ra an toàn production từ scorecard public.
