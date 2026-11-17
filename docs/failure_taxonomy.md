@@ -1,6 +1,6 @@
 # Failure taxonomy v1
 
-Số event tính từ 1 theo `lab9.trace_case`. Metric là đề xuất; các grader M3 chưa được cài. Một item có thể kiểm tra một FM ngay cả khi baseline không mắc lỗi đó; coverage không khẳng định lỗi đã xảy ra trên baseline.
+Số event tính từ 1 theo `lab9.trace_case`. Bảng ghi metric đề xuất; trạng thái grader hiện tại được đối chiếu trong `PRD_v1.1.md`. Một item có thể kiểm tra một FM ngay cả khi baseline không mắc lỗi đó; coverage không khẳng định lỗi đã xảy ra trên baseline.
 
 | ID | Tên | Định nghĩa một câu | Layer | Bằng chứng và lý do | Grader | Metric đề xuất |
 |---|---|---|---|---|---|---|
