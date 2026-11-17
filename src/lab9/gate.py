@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 from lab8.console import utf8_stdio
@@ -44,8 +45,54 @@ def slice_check(pr: dict, base: dict, spec: dict) -> tuple[list[str], list[str]]
       - fail if below "min", or if no_significant_drop and the paired CI over the slice's items
         lies entirely below 0
     Return (blocked ids like "slice:money_movement/pass_rate", report lines)."""
-    # TODO M5
-    return [], []
+    blocked, lines = [], []
+    bs = spec.get("bootstrap", {})
+    for sl in spec.get("slices", []):
+        name, metric = sl["name"], sl["metric"]
+        key = f"slice:{name}/{metric}"
+        blocking = sl.get("blocking", False)
+
+        def collect(report):
+            grouped = {}
+            for row in report.get("rows", []):
+                if name not in (row.get("slices") or []):
+                    continue
+                item, seed, value = row.get("item_id"), row.get("seed"), row.get(metric)
+                if (item is None or seed is None or not isinstance(value, (int, float))
+                        or not math.isfinite(value) or seed in grouped.get(item, {})):
+                    raise ValueError("missing, invalid or duplicate slice data")
+                grouped.setdefault(item, {})[seed] = float(value)
+            if not grouped:
+                raise ValueError("empty slice")
+            expected_seeds = report.get("manifest", {}).get("seeds")
+            if expected_seeds is not None and any(set(values) != set(expected_seeds) for values in grouped.values()):
+                raise ValueError("slice is missing expected seeds")
+            return grouped
+
+        try:
+            current, baseline = collect(pr), collect(base)
+            if current.keys() != baseline.keys() or any(current[k].keys() != baseline[k].keys() for k in current):
+                raise ValueError("slice item/seed pairs differ from baseline")
+            keys = sorted(current)
+            a = [sum(current[k].values()) / len(current[k]) for k in keys]
+            b = [sum(baseline[k].values()) / len(baseline[k]) for k in keys]
+            value = sum(a) / len(a)
+            failed = "min" in sl and value < sl["min"]
+            detail = f"value {value:.3f} (n={len(keys)} items)"
+            if sl.get("no_significant_drop"):
+                d, lo, hi = stats.paired_bootstrap(a, b, n_resamples=bs.get("n_resamples", 1000),
+                                                   rng=bs.get("rng", 2027), confidence=bs.get("confidence", 0.95))
+                detail += f" Δ {d:+.3f} CI [{lo:+.3f}, {hi:+.3f}]"
+                failed = failed or hi < 0
+            result = "BLOCK" if failed and blocking else "warn" if failed else "ok"
+        except (ValueError, TypeError) as exc:
+            failed = True
+            detail = f"missing or invalid data: {exc}"
+            result = "BLOCK" if blocking else "warn"
+        if failed and blocking:
+            blocked.append(key)
+        lines.append(f"  {key} {detail} {result}")
+    return blocked, lines
 
 
 def check(pr: dict, base: dict, spec: dict, base_spec: dict | None = None) -> tuple[list[str], list[str]]:
