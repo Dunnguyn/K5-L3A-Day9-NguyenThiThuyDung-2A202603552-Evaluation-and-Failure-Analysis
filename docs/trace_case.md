@@ -2,7 +2,7 @@
 
 | Trường | Bằng chứng |
 |---|---|
-| Trial | `seeded_regression / C-002 / seed 11`; trace run ID `R-seeded_regression-C-002-s11`, eval report `E-seeded_regression-20261117-9aa9`. |
+| Trial | `seeded_regression / C-002 / seed 11`; trace run ID `R-seeded_regression-C-002-s11`, eval report `E-seeded_regression-20261118-cfc2`. |
 | Ledger trước reply | Ledger hoàn 20.000đ, count 1, committed audit 1, unexpected rows 0; nhãn yêu cầu 0đ, count 0, audit 0, status `denied`, proposal 0, `approval_ok=true`. Result thực tế `resolved`; Lab 8 grader FAIL. |
 | First wrong step | Event **3 `model_override`**: `delay_days=5`. |
 | Vì sao đầu tiên | Event 1 handoff và event 2 investigator đọc đơn O-202 có DB `delay_days=2`; event 3 thay bằng 5 ngày từ ticket, trái dữ kiện DB. Event 4 mới quote 20.000đ và event 6 mới nói đã hoàn 20.000đ: đó là hệ quả sau bước sai. |
