@@ -48,7 +48,7 @@ Khi BLOCK, Eval/QA owner (**TBD**) giữ merge, kiểm tra trace/ledger và tái
 
 ## 5. Evidence và rủi ro mở
 
-Baseline, fixed và seeded regression có 70 rows và 0 evaluator failures; gate regression block theo `pass_rate`. Thiếu xác nhận hidden anchor key, judge held-out, dữ liệu người dùng thật và bằng chứng production. MockLLM, 14 item, 5 seed và CSV replay công khai hạn chế tính đại diện; FM-08 có trường hợp không thể đánh giá; grader theo event có thể bỏ sót lỗi không phát event. `integrity_check` và ratchet trong gate là TODO M7, nên không tuyên bố đã bảo vệ báo cáo khỏi gian lận hoặc tự động ngăn nới ngưỡng.
+Baseline, fixed và seeded regression có 70 rows và 0 evaluator failures; gate regression block theo `pass_rate`. Thiếu xác nhận hidden anchor key, judge held-out, dữ liệu người dùng thật và bằng chứng production. MockLLM, 14 item, 5 seed và CSV replay công khai hạn chế tính đại diện; FM-08 có trường hợp không thể đánh giá; grader theo event có thể bỏ sót lỗi không phát event. Integrity check và ratchet M7 đã có trong gate; ratchet chỉ hoạt động khi truyền `--base-spec`, và không xác thực được report cùng baseline bị sửa nhất quán.
 
 ## 6. Versioning và phê duyệt
 

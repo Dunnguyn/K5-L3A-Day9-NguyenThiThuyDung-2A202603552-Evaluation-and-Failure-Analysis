@@ -41,8 +41,13 @@ def test_item_level_and_insufficient_trials():
 
 
 def test_aggregated_pass_hat_5_blocks_floor():
-    baseline = {"manifest": {"eval_set_sha": "x"}, "rows": [], "metrics": {"pass_hat_5": 1.0}}
-    pr = {**baseline, "metrics": {"pass_hat_5": 0.5}}
+    def sample(bad):
+        rows = [{"item_id": item, "seed": seed, "slices": [],
+                 "pass_rate": not (bad and item == "b" and seed == 1)}
+                for item in ("a", "b") for seed in range(1, 6)]
+        return {"manifest": {"eval_set_sha": "x", "items": 2, "seeds": list(range(1, 6))},
+                "rows": rows, "evaluator_failures": [], "metrics": {"pass_hat_5": 0.5 if bad else 1.0}}
+    baseline, pr = sample(False), sample(True)
     spec = {"metrics": [{"id": "pass_hat_5", "kind": "capability", "blocking": True,
                          "threshold": {"min": 0.8}}]}
     assert check(pr, baseline, spec)[0] == ["pass_hat_5"]
