@@ -50,4 +50,24 @@ Theo [judge audit](judge_audit.md), tone_ok trên replay đạt κ 0,757, P 0,85
 
 Pilot là đánh giá offline claim hoàn tiền một đơn trong bộ dữ liệu Lab 8; có xử lý thiếu thông tin, denial và escalation. Không có người dùng thật hay bằng chứng vận hành production. MockLLM không đại diện model thật; 14 item và 5 seed hạn chế khả năng phát hiện lỗi hiếm; judge là replay CSV công khai, không phải held-out. FM-08 trả đạt khi thiếu reply hoặc không trích được số tiền, vì không có bằng chứng mismatch; không coi đây là chứng minh reply đúng. Các metric step/outcome không bao phủ mọi FM.
 
-Thay item, nội dung claim, label, split hoặc tập dữ liệu làm thay đổi bài đánh giá phải tăng `eval_set_version`, tạo lại baseline và so sánh cùng phiên bản. Thay metric/ngưỡng phải tăng `metric_spec_version`, ghi lý do và đánh giá lại baseline; cùng eval-set version không nới ngưỡng. Thay grader/code cần ghi commit và chạy lại baseline khi semantics hoặc giá trị thay đổi; không coi hai baseline khác cách chấm là so sánh trực tiếp. Các bước version/ratchet là quy trình đề xuất; integrity/ratchet tự động là M7 chưa triển khai.
+Thay item, nội dung claim, label, split hoặc tập dữ liệu làm thay đổi bài đánh giá phải tăng `eval_set_version`, tạo lại baseline và so sánh cùng phiên bản. Thay metric/ngưỡng phải tăng `metric_spec_version`, ghi lý do và đánh giá lại baseline; cùng eval-set version không nới ngưỡng. Thay grader/code cần ghi commit và chạy lại baseline khi semantics hoặc giá trị thay đổi; không coi hai baseline khác cách chấm là so sánh trực tiếp. Ratchet tự động cần truyền base spec như mục M7 bên dưới.
+
+## M6 — reliability và A/A trên eval set v2
+
+`pass@k` là xác suất ít nhất một thành công trong k lượt lấy không hoàn lại; `pass^k` (`pass_hat_k`) là xác suất cả k lượt thành công. Harness tính từng item từ số lượt thành công trên 5 seed, rồi lấy trung bình qua 28 item; không coi 140 trial là 140 item độc lập.
+
+A/A dùng cùng `swarm`, cùng eval set SHA `06f20ae661c4`, bộ A `[11,22,33,44,55]` và B `[66,77,88,99,110]`. `lab9.mutation --aa` báo Δ = B − A bằng 0,0000 cho mọi metric; đây là độ phân giải các metric được aggregate/báo cáo, không phải ước lượng phân phối nhiễu đầy đủ. Cả hai bộ có `pass_rate=0,9786`, `pass_hat_5=0,8929` và `cost_per_success=50,8077`.
+
+Sàn blocking `pass_hat_5 >= 0,80` theo rubric, thấp hơn baseline A/A 0,8929; A/A quan sát delta 0 nên sàn không nằm ở giá trị baseline quan sát. `flaky_regression` có `pass_rate=0,9143` nhưng `pass_hat_5=0,5714`, bị gate chặn bởi `pass_hat_5` (và trong lần chạy này cả pass_rate và slice money_movement). Trung bình pass_rate có thể vẫn cao khi một lỗi hiếm phá vỡ tính ổn định qua cả 5 lượt.
+
+Hai bộ seed này đều deterministic trên MockLLM, không đại diện biến động của LLM thực do sampling, hạ tầng, model hoặc dữ liệu. Một sàn trong vùng nhiễu thật có thể chặn nhầm phiên bản trung thực; cần nhiều lần A/A và mẫu độc lập trước khi chọn sàn production. Năm seed và 28 item chỉ cho độ phân giải hạn chế; lỗi xảy ra khoảng 1/3 lần không được phát hiện ổn định với chỉ 5 seed. Không dùng report B để gate so với baseline A vì không cùng cặp seed.
+
+## M7 — integrity và chống làm đẹp kết quả
+
+Gate kiểm tra PR và baseline trước quality thresholds: metric số hữu hạn, metric aggregate bắt buộc và boolean từng trial, evaluator failures, kích thước ma trận item × seed, cặp trùng hoặc bị đổi, seed thiếu/ngoài manifest, và slice tags nhất quán theo item và so với baseline. Với grader theo trial, aggregate phải khớp rows; `pass_hat_5` cũng được tính đối chiếu từ rows. Slice tag được so như tập hợp, không phụ thuộc thứ tự. Sai lệch trả `INTEGRITY` và block.
+
+Khi được truyền `--base-spec` và cùng eval-set version, ratchet chặn xóa metric/slice, tắt blocking, nới min/max/max_increase, bỏ `no_significant_drop` hoặc thay metric của slice. Việc so sánh theo ID/tên không phụ thuộc thứ tự. **Không truyền `--base-spec` thì ratchet không được áp dụng**; workflow v2 lấy base spec theo SHA của base PR (hoặc nhánh mặc định khi chạy thủ công) và truyền vào gate/scorecard. Khi base branch chưa có các yêu cầu Advanced, test rubric bổ sung kiểm tra floor reliability, FM-08 và hai slice blocking.
+
+Trên `E-slice_regression-20261117-06f2` với baseline `E-swarm-20261117-06f2`, spec 2.1: `lab9.traps` exit 0, cả bốn trap đều bị gate exit 1: `evaluator_errors_as_nan` (row metric thiếu), `dropped_failing_rows` (số row không đủ), `cherry_picked_seeds` (seed/metric không hợp lệ hoặc khác baseline) và `loosened_spec` (ratchet với `--base-spec`). Mutation scorecard chặn 3/3 regression, 0 false alarms; fixed và honest refactor merge. Đây là kết quả public, không phải kết quả hidden grader hay GitHub Actions.
+
+Integrity không xác thực mật mã nguồn gốc report hay bảo vệ nếu kẻ sửa thay cả rows lẫn aggregate một cách nhất quán, hoặc sửa baseline/spec được tin cậy. Cần lưu baseline và base-spec từ nhánh được bảo vệ, hạn chế quyền sửa, tái chạy eval trong CI và xác thực provenance/artifact; cần thêm kiểm thử hidden cho dữ liệu giả nhất quán, thang điểm ngoài miền và thay đổi hành vi grader. Không suy ra an toàn production từ scorecard public.

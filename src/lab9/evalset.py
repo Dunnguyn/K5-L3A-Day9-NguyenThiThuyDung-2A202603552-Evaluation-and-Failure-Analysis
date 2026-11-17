@@ -108,7 +108,20 @@ def build_v2(items_v1: Path = ITEMS, labels_v1: Path = LABELS, pack: Path = PACK
     base = load_jsonl(items_v1)
     labels = json.loads(labels_v1.read_text(encoding="utf-8"))
     p = json.loads(pack.read_text(encoding="utf-8"))
-    items = [{**it, "eval_set_version": "v2", "slices": slices_for(labels[it["claim_id"]], False)} for it in base]
+    # Controlled sibling-refund replays on these public cases commit an
+    # unauthorized sibling row. Extend coverage only in v2; leave v1 intact.
+    sibling_coverage = {"C-001", "C-010"}
+    items = []
+    for it in base:
+        modes = list(it["failure_modes"])
+        provenance = dict(it["provenance"])
+        if it["claim_id"] in sibling_coverage:
+            if "FM-07" not in modes:
+                modes.append("FM-07")
+            provenance["from_trace"] = f"controlled_sibling/{it['claim_id']}/11#4"
+            provenance["checked_by"] = "controlled_fault_replay"
+        items.append({**it, "failure_modes": modes, "provenance": provenance,
+                      "eval_set_version": "v2", "slices": slices_for(labels[it["claim_id"]], False)})
     for claim in p["claims"]:
         items.append({
             "item_id": f"E-{claim['claim_id'][2:]}",   # C-105 -> E-105
