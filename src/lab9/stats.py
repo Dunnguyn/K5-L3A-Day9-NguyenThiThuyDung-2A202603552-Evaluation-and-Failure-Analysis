@@ -62,8 +62,25 @@ def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int
     """a[i], b[i] = per-item mean over seeds, SAME items, SAME order.
     Return (mean(a)-mean(b), lo, hi) with scipy.stats.bootstrap(paired=True, method="percentile",
     rng=numpy.random.default_rng(rng)). If a == b everywhere return (0.0, 0.0, 0.0)."""
-    # TODO M4
-    raise NotImplementedError
+    import numpy as np
+    from scipy.stats import bootstrap
+
+    x, y = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("paired samples must be one-dimensional, equally sized, and contain at least two items")
+    if not np.isfinite(x).all() or not np.isfinite(y).all():
+        raise ValueError("paired samples must contain finite values")
+    if not isinstance(n_resamples, int) or isinstance(n_resamples, bool) or n_resamples <= 0:
+        raise ValueError("n_resamples must be a positive integer")
+    if not 0 < confidence < 1:
+        raise ValueError("confidence must be between 0 and 1")
+    if np.array_equal(x, y):
+        return 0.0, 0.0, 0.0
+    result = bootstrap((x, y), lambda p, q, axis: np.mean(p - q, axis=axis),
+                       paired=True, vectorized=True, method="percentile",
+                       n_resamples=n_resamples, confidence_level=confidence,
+                       rng=np.random.default_rng(rng))
+    return float(np.mean(x - y)), float(result.confidence_interval.low), float(result.confidence_interval.high)
 
 
 def pass_at_k(n: int, c: int, k: int) -> float:
